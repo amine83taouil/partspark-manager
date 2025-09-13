@@ -8,81 +8,129 @@ All colors MUST be HSL.
 
 @layer base {
   :root {
-    --background: 0 0% 100%;
+    /* Base colors */
+    --background: 210 40% 98%;
     --foreground: 222.2 84% 4.9%;
 
+    /* Card & Surfaces */
     --card: 0 0% 100%;
     --card-foreground: 222.2 84% 4.9%;
+    --card-elevated: 0 0% 100%;
 
+    /* Popover */
     --popover: 0 0% 100%;
     --popover-foreground: 222.2 84% 4.9%;
 
-    --primary: 222.2 47.4% 11.2%;
-    --primary-foreground: 210 40% 98%;
+    /* Primary - Ocean Blue Theme */
+    --primary: 210 85% 45%;
+    --primary-foreground: 0 0% 100%;
+    --primary-hover: 210 85% 40%;
+    --primary-light: 210 85% 95%;
 
-    --secondary: 210 40% 96.1%;
+    /* Secondary */
+    --secondary: 210 20% 96%;
     --secondary-foreground: 222.2 47.4% 11.2%;
+    --secondary-hover: 210 20% 92%;
 
-    --muted: 210 40% 96.1%;
+    /* Muted */
+    --muted: 210 20% 96%;
     --muted-foreground: 215.4 16.3% 46.9%;
 
-    --accent: 210 40% 96.1%;
-    --accent-foreground: 222.2 47.4% 11.2%;
+    /* Accent */
+    --accent: 210 85% 95%;
+    --accent-foreground: 210 85% 25%;
 
+    /* Status Colors */
+    --success: 142 76% 36%;
+    --success-foreground: 0 0% 100%;
+    --warning: 48 96% 53%;
+    --warning-foreground: 222.2 84% 4.9%;
     --destructive: 0 84.2% 60.2%;
     --destructive-foreground: 210 40% 98%;
+    --low-stock: 0 84.2% 60.2%;
 
+    /* Borders & Inputs */
     --border: 214.3 31.8% 91.4%;
     --input: 214.3 31.8% 91.4%;
-    --ring: 222.2 84% 4.9%;
+    --ring: 210 85% 45%;
 
-    --radius: 0.5rem;
+    /* Gradients */
+    --gradient-primary: linear-gradient(135deg, hsl(210 85% 45%), hsl(210 85% 55%));
+    --gradient-card: linear-gradient(145deg, hsl(0 0% 100%), hsl(210 20% 98%));
+    --gradient-stats: linear-gradient(135deg, hsl(210 85% 50%), hsl(220 85% 55%));
 
+    /* Shadows */
+    --shadow-sm: 0 1px 2px 0 hsl(210 20% 0% / 0.05);
+    --shadow-md: 0 4px 6px -1px hsl(210 20% 0% / 0.1), 0 2px 4px -2px hsl(210 20% 0% / 0.1);
+    --shadow-lg: 0 10px 15px -3px hsl(210 20% 0% / 0.1), 0 4px 6px -4px hsl(210 20% 0% / 0.1);
+    --shadow-primary: 0 4px 14px hsl(210 85% 45% / 0.25);
+
+    --radius: 0.75rem;
+
+    /* Sidebar */
     --sidebar-background: 0 0% 98%;
-
     --sidebar-foreground: 240 5.3% 26.1%;
-
     --sidebar-primary: 240 5.9% 10%;
-
     --sidebar-primary-foreground: 0 0% 98%;
-
     --sidebar-accent: 240 4.8% 95.9%;
-
     --sidebar-accent-foreground: 240 5.9% 10%;
-
     --sidebar-border: 220 13% 91%;
-
     --sidebar-ring: 217.2 91.2% 59.8%;
   }
 
   .dark {
+    /* Base colors */
     --background: 222.2 84% 4.9%;
     --foreground: 210 40% 98%;
 
+    /* Card & Surfaces */
     --card: 222.2 84% 4.9%;
     --card-foreground: 210 40% 98%;
+    --card-elevated: 217.2 32.6% 15.5%;
 
+    /* Popover */
     --popover: 222.2 84% 4.9%;
     --popover-foreground: 210 40% 98%;
 
-    --primary: 210 40% 98%;
-    --primary-foreground: 222.2 47.4% 11.2%;
+    /* Primary - Ocean Blue Theme Dark */
+    --primary: 210 85% 55%;
+    --primary-foreground: 222.2 84% 4.9%;
+    --primary-hover: 210 85% 60%;
+    --primary-light: 210 85% 15%;
 
+    /* Secondary */
     --secondary: 217.2 32.6% 17.5%;
     --secondary-foreground: 210 40% 98%;
+    --secondary-hover: 217.2 32.6% 22.5%;
 
+    /* Muted */
     --muted: 217.2 32.6% 17.5%;
     --muted-foreground: 215 20.2% 65.1%;
 
+    /* Accent */
     --accent: 217.2 32.6% 17.5%;
     --accent-foreground: 210 40% 98%;
 
-    --destructive: 0 62.8% 30.6%;
+    /* Status Colors */
+    --success: 142 76% 46%;
+    --success-foreground: 222.2 84% 4.9%;
+    --warning: 48 96% 63%;
+    --warning-foreground: 222.2 84% 4.9%;
+    --destructive: 0 62.8% 50.6%;
     --destructive-foreground: 210 40% 98%;
+    --low-stock: 0 62.8% 50.6%;
 
+    /* Borders & Inputs */
     --border: 217.2 32.6% 17.5%;
     --input: 217.2 32.6% 17.5%;
     --ring: 212.7 26.8% 83.9%;
+
+    /* Gradients Dark */
+    --gradient-primary: linear-gradient(135deg, hsl(210 85% 55%), hsl(210 85% 65%));
+    --gradient-card: linear-gradient(145deg, hsl(222.2 84% 4.9%), hsl(217.2 32.6% 15.5%));
+    --gradient-stats: linear-gradient(135deg, hsl(210 85% 55%), hsl(220 85% 65%));
+
+    /* Sidebar */
     --sidebar-background: 240 5.9% 10%;
     --sidebar-foreground: 240 4.8% 95.9%;
     --sidebar-primary: 224.3 76.3% 48%;
@@ -100,6 +148,60 @@ All colors MUST be HSL.
   }
 
   body {
-    @apply bg-background text-foreground;
+    @apply bg-background text-foreground font-sans antialiased;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    @apply font-semibold tracking-tight;
+  }
+}
+
+@layer components {
+  /* Animations */
+  .animate-slide-up {
+    animation: slideUp 0.3s ease-out;
+  }
+
+  .animate-fade-in {
+    animation: fadeIn 0.2s ease-out;
+  }
+
+  /* Custom scrollbar */
+  .scrollbar-thin {
+    scrollbar-width: thin;
+    scrollbar-color: hsl(var(--border)) transparent;
+  }
+
+  .scrollbar-thin::-webkit-scrollbar {
+    width: 6px;
+  }
+
+  .scrollbar-thin::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  .scrollbar-thin::-webkit-scrollbar-thumb {
+    background-color: hsl(var(--border));
+    border-radius: 3px;
+  }
+}
+
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
   }
 }
