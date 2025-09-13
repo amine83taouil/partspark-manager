@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Part, PartFormData, InventoryStats, ActivityLog, Category } from '@/types/inventory';
+import { generateUniqueSku } from '@/utils/skuGenerator';
 
 const STORAGE_KEY = 'inventory-parts';
 const LOGS_KEY = 'inventory-logs';
@@ -53,33 +54,69 @@ export function useInventory() {
     setLogs(prev => [log, ...prev].slice(0, 100)); // Keep only last 100 logs
   }, []);
 
+  // Fonction utilitaire pour extraire la marque du SKU
+  const extractBrandFromSku = (sku: string): string => {
+    const skuParts = sku.split('-');
+    return skuParts.length >= 2 ? skuParts[1] : '';
+  };
+
   const createPart = useCallback((formData: PartFormData) => {
+    // Générer un SKU unique
+    const sku = generateUniqueSku(formData.category, formData.brand, parts);
+    
     const newPart: Part = {
       id: Date.now().toString(),
-      ...formData,
+      sku,
+      name: formData.name,
+      category: formData.category,
+      quantity: formData.quantity,
+      location: formData.location,
+      supplier: formData.supplier,
+      unitCost: formData.unitCost,
+      reorderThreshold: formData.reorderThreshold,
+      notes: formData.notes,
       createdAt: new Date(),
       updatedAt: new Date(),
     };
 
     setParts(prev => [...prev, newPart]);
-    addLog('CREATE', newPart.id, newPart.name, `Pièce créée avec SKU: ${newPart.sku}`);
+    addLog('CREATE', newPart.id, newPart.name, `Pièce créée avec SKU: ${sku}`);
     return newPart;
-  }, [addLog]);
+  }, [parts, addLog]);
 
   const updatePart = useCallback((id: string, formData: PartFormData) => {
     setParts(prev => prev.map(part => {
       if (part.id === id) {
+        // Régénérer le SKU si la catégorie ou la marque a changé
+        const currentPart = parts.find(p => p.id === id);
+        let sku = part.sku;
+        
+        if (currentPart && (
+          formData.category !== currentPart.category || 
+          formData.brand !== extractBrandFromSku(currentPart.sku)
+        )) {
+          sku = generateUniqueSku(formData.category, formData.brand, parts.filter(p => p.id !== id));
+        }
+        
         const updatedPart = {
           ...part,
-          ...formData,
+          sku,
+          name: formData.name,
+          category: formData.category,
+          quantity: formData.quantity,
+          location: formData.location,
+          supplier: formData.supplier,
+          unitCost: formData.unitCost,
+          reorderThreshold: formData.reorderThreshold,
+          notes: formData.notes,
           updatedAt: new Date(),
         };
-        addLog('UPDATE', id, updatedPart.name, `Pièce modifiée`);
+        addLog('UPDATE', id, updatedPart.name, `Pièce modifiée${sku !== part.sku ? ` - Nouveau SKU: ${sku}` : ''}`);
         return updatedPart;
       }
       return part;
     }));
-  }, [addLog]);
+  }, [parts, addLog]);
 
   const deletePart = useCallback((id: string) => {
     const part = parts.find(p => p.id === id);
@@ -134,7 +171,8 @@ export function useInventory() {
         part.name.toLowerCase().includes(query.toLowerCase()) ||
         part.sku.toLowerCase().includes(query.toLowerCase()) ||
         part.supplier.toLowerCase().includes(query.toLowerCase()) ||
-        part.notes.toLowerCase().includes(query.toLowerCase());
+        part.notes.toLowerCase().includes(query.toLowerCase()) ||
+        extractBrandFromSku(part.sku).toLowerCase().includes(query.toLowerCase());
 
       const matchesCategory = !categoryFilter || part.category === categoryFilter;
       const matchesLocation = !locationFilter || part.location.toLowerCase().includes(locationFilter.toLowerCase());

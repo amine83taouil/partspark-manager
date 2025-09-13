@@ -15,9 +15,9 @@ interface PartFormProps {
 
 export function PartForm({ part, onSubmit, onCancel }: PartFormProps) {
   const [formData, setFormData] = useState<PartFormData>({
-    sku: "",
     name: "",
     category: "Batterie",
+    brand: "",
     quantity: 0,
     location: "",
     supplier: "",
@@ -30,10 +30,13 @@ export function PartForm({ part, onSubmit, onCancel }: PartFormProps) {
 
   useEffect(() => {
     if (part) {
+      // Extraire la marque du SKU existant
+      const brandFromSku = part.sku.split('-')[1] || '';
+      
       setFormData({
-        sku: part.sku,
         name: part.name,
         category: part.category,
+        brand: brandFromSku,
         quantity: part.quantity,
         location: part.location,
         supplier: part.supplier,
@@ -47,8 +50,8 @@ export function PartForm({ part, onSubmit, onCancel }: PartFormProps) {
   const validateForm = (): boolean => {
     const newErrors: Partial<PartFormData> = {};
 
-    if (!formData.sku.trim()) newErrors.sku = "SKU requis";
     if (!formData.name.trim()) newErrors.name = "Nom requis";
+    if (!formData.brand.trim()) newErrors.brand = "Marque/Modèle requis";
     if (!formData.location.trim()) newErrors.location = "Localisation requise";
     if (!formData.supplier.trim()) newErrors.supplier = "Fournisseur requis";
     if (formData.quantity < 0) newErrors.quantity = "Quantité invalide" as any;
@@ -85,25 +88,30 @@ export function PartForm({ part, onSubmit, onCancel }: PartFormProps) {
         <form onSubmit={handleSubmit} className="space-y-6">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <Label htmlFor="sku">SKU *</Label>
-              <Input
-                id="sku"
-                value={formData.sku}
-                onChange={(e) => updateField("sku", e.target.value)}
-                className={errors.sku ? "border-destructive" : ""}
-              />
-              {errors.sku && <p className="text-sm text-destructive mt-1">{errors.sku}</p>}
-            </div>
-
-            <div>
               <Label htmlFor="name">Nom de la pièce *</Label>
               <Input
                 id="name"
                 value={formData.name}
                 onChange={(e) => updateField("name", e.target.value)}
                 className={errors.name ? "border-destructive" : ""}
+                placeholder="ex: Écran LCD iPhone 13"
               />
               {errors.name && <p className="text-sm text-destructive mt-1">{errors.name}</p>}
+            </div>
+
+            <div>
+              <Label htmlFor="brand">Marque / Modèle *</Label>
+              <Input
+                id="brand"
+                value={formData.brand}
+                onChange={(e) => updateField("brand", e.target.value)}
+                className={errors.brand ? "border-destructive" : ""}
+                placeholder="ex: iPhone, Samsung, Huawei"
+              />
+              {errors.brand && <p className="text-sm text-destructive mt-1">{errors.brand}</p>}
+              <p className="text-xs text-muted-foreground mt-1">
+                Le SKU sera généré automatiquement (ex: ECR-IPH-1234)
+              </p>
             </div>
           </div>
 

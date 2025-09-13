@@ -49,9 +49,9 @@ export const CATEGORIES: Category[] = [
 ];
 
 export interface PartFormData {
-  sku: string;
   name: string;
   category: Category;
+  brand: string;
   quantity: number;
   location: string;
   supplier: string;
