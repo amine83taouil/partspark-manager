@@ -14,7 +14,78 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      activity_logs: {
+        Row: {
+          action: Database["public"]["Enums"]["activity_action"]
+          details: string
+          id: string
+          part_id: string | null
+          part_name: string
+          timestamp: string
+        }
+        Insert: {
+          action: Database["public"]["Enums"]["activity_action"]
+          details?: string
+          id?: string
+          part_id?: string | null
+          part_name: string
+          timestamp?: string
+        }
+        Update: {
+          action?: Database["public"]["Enums"]["activity_action"]
+          details?: string
+          id?: string
+          part_id?: string | null
+          part_name?: string
+          timestamp?: string
+        }
+        Relationships: []
+      }
+      parts: {
+        Row: {
+          category: Database["public"]["Enums"]["part_category"]
+          created_at: string
+          id: string
+          location: string
+          name: string
+          notes: string | null
+          quantity: number
+          reorder_threshold: number
+          sku: string
+          supplier: string
+          unit_cost: number
+          updated_at: string
+        }
+        Insert: {
+          category: Database["public"]["Enums"]["part_category"]
+          created_at?: string
+          id?: string
+          location?: string
+          name: string
+          notes?: string | null
+          quantity?: number
+          reorder_threshold?: number
+          sku: string
+          supplier?: string
+          unit_cost?: number
+          updated_at?: string
+        }
+        Update: {
+          category?: Database["public"]["Enums"]["part_category"]
+          created_at?: string
+          id?: string
+          location?: string
+          name?: string
+          notes?: string | null
+          quantity?: number
+          reorder_threshold?: number
+          sku?: string
+          supplier?: string
+          unit_cost?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
@@ -23,7 +94,23 @@ export type Database = {
       [_ in never]: never
     }
     Enums: {
-      [_ in never]: never
+      activity_action: "CREATE" | "UPDATE" | "DELETE" | "STOCK_ADJUST"
+      part_category:
+        | "Adhésif"
+        | "Antenne"
+        | "Batterie"
+        | "Caméra"
+        | "Châssis"
+        | "Connecteur de charge"
+        | "Écouteur interne"
+        | "Écran complet"
+        | "Haut-parleur"
+        | "Lentille caméra"
+        | "Nappe"
+        | "Tiroir SIM"
+        | "Vibreur"
+        | "Visserie"
+        | "Vitre arrière"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -150,6 +237,25 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      activity_action: ["CREATE", "UPDATE", "DELETE", "STOCK_ADJUST"],
+      part_category: [
+        "Adhésif",
+        "Antenne",
+        "Batterie",
+        "Caméra",
+        "Châssis",
+        "Connecteur de charge",
+        "Écouteur interne",
+        "Écran complet",
+        "Haut-parleur",
+        "Lentille caméra",
+        "Nappe",
+        "Tiroir SIM",
+        "Vibreur",
+        "Visserie",
+        "Vitre arrière",
+      ],
+    },
   },
 } as const
