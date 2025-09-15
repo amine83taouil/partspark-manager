@@ -14,6 +14,7 @@ const Index = () => {
   const {
     parts,
     logs,
+    loading,
     createPart,
     updatePart,
     deletePart,
@@ -36,9 +37,9 @@ const Index = () => {
     setSearchActive(Boolean(query || category || location));
   };
 
-  const handleCreatePart = (formData: PartFormData) => {
+  const handleCreatePart = async (formData: PartFormData) => {
     try {
-      createPart(formData);
+      await createPart(formData);
       setShowForm(false);
       toast({
         title: "Pièce créée",
@@ -52,12 +53,11 @@ const Index = () => {
       });
     }
   };
-
-  const handleUpdatePart = (formData: PartFormData) => {
+  const handleUpdatePart = async (formData: PartFormData) => {
     if (!editingPart) return;
     
     try {
-      updatePart(editingPart.id, formData);
+      await updatePart(editingPart.id, formData);
       setEditingPart(null);
       setShowForm(false);
       toast({
@@ -73,9 +73,9 @@ const Index = () => {
     }
   };
 
-  const handleDeletePart = (id: string) => {
+  const handleDeletePart = async (id: string) => {
     try {
-      deletePart(id);
+      await deletePart(id);
       toast({
         title: "Pièce supprimée",
         description: "La pièce a été supprimée de l'inventaire.",
@@ -89,9 +89,9 @@ const Index = () => {
     }
   };
 
-  const handleStockAdjust = (id: string, adjustment: number) => {
+  const handleStockAdjust = async (id: string, adjustment: number) => {
     try {
-      adjustStock(id, adjustment);
+      await adjustStock(id, adjustment);
       toast({
         title: "Stock ajusté",
         description: `Stock ${adjustment > 0 ? "augmenté" : "diminué"} de ${Math.abs(adjustment)}.`,
@@ -116,6 +116,17 @@ const Index = () => {
   };
 
   const displayedParts = searchActive ? filteredParts : parts;
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-primary mx-auto mb-4"></div>
+          <p className="text-muted-foreground">Chargement de l'inventaire...</p>
+        </div>
+      </div>
+    );
+  }
 
   if (showForm) {
     return (
