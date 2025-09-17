@@ -22,6 +22,7 @@ export type Database = {
           part_id: string | null
           part_name: string
           timestamp: string
+          user_id: string | null
         }
         Insert: {
           action: Database["public"]["Enums"]["activity_action"]
@@ -30,6 +31,7 @@ export type Database = {
           part_id?: string | null
           part_name: string
           timestamp?: string
+          user_id?: string | null
         }
         Update: {
           action?: Database["public"]["Enums"]["activity_action"]
@@ -38,13 +40,23 @@ export type Database = {
           part_id?: string | null
           part_name?: string
           timestamp?: string
+          user_id?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "activity_logs_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       parts: {
         Row: {
           category: Database["public"]["Enums"]["part_category"]
           created_at: string
+          created_by: string | null
           id: string
           location: string
           name: string
@@ -55,10 +67,12 @@ export type Database = {
           supplier: string
           unit_cost: number
           updated_at: string
+          updated_by: string | null
         }
         Insert: {
           category: Database["public"]["Enums"]["part_category"]
           created_at?: string
+          created_by?: string | null
           id?: string
           location?: string
           name: string
@@ -69,10 +83,12 @@ export type Database = {
           supplier?: string
           unit_cost?: number
           updated_at?: string
+          updated_by?: string | null
         }
         Update: {
           category?: Database["public"]["Enums"]["part_category"]
           created_at?: string
+          created_by?: string | null
           id?: string
           location?: string
           name?: string
@@ -83,15 +99,82 @@ export type Database = {
           supplier?: string
           unit_cost?: number
           updated_at?: string
+          updated_by?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "parts_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "parts_updated_by_fkey"
+            columns: ["updated_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      profiles: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          full_name: string
+          id: string
+          is_active: boolean
+          password_hash: string
+          role: Database["public"]["Enums"]["user_role"]
+          updated_at: string
+          username: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          full_name: string
+          id?: string
+          is_active?: boolean
+          password_hash: string
+          role?: Database["public"]["Enums"]["user_role"]
+          updated_at?: string
+          username: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          full_name?: string
+          id?: string
+          is_active?: boolean
+          password_hash?: string
+          role?: Database["public"]["Enums"]["user_role"]
+          updated_at?: string
+          username?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "profiles_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      authenticate_user: {
+        Args: { password_input: string; username_input: string }
+        Returns: string
+      }
+      hash_password: {
+        Args: { password: string }
+        Returns: string
+      }
     }
     Enums: {
       activity_action: "CREATE" | "UPDATE" | "DELETE" | "STOCK_ADJUST"
@@ -111,6 +194,7 @@ export type Database = {
         | "Vibreur"
         | "Visserie"
         | "Vitre arrière"
+      user_role: "admin" | "operator"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -256,6 +340,7 @@ export const Constants = {
         "Visserie",
         "Vitre arrière",
       ],
+      user_role: ["admin", "operator"],
     },
   },
 } as const
