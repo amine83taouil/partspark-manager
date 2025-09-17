@@ -109,6 +109,12 @@ export function ActivityLogs({ logs, className }: ActivityLogsProps) {
                 <p className="text-sm text-muted-foreground mt-1">
                   {log.details}
                 </p>
+                
+                {log.userName && (
+                  <p className="text-xs text-muted-foreground mt-1 font-medium">
+                    Par: {log.userName}
+                  </p>
+                )}
               </div>
             </div>
           ))}

@@ -74,4 +74,5 @@ export interface ActivityLog {
   partId: string;
   partName: string;
   details: string;
+  userName?: string;
 }

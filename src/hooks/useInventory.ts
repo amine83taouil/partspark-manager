@@ -1,40 +1,32 @@
-import { useState, useEffect, useCallback } from 'react';
-import { Part, PartFormData, InventoryStats, ActivityLog, Category } from '@/types/inventory';
-import { generateUniqueSku } from '@/utils/skuGenerator';
+import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
+import { generateUniqueSku } from '@/utils/skuGenerator';
+import type { Part, PartFormData, ActivityLog } from '@/types/inventory';
 
-export function useInventory() {
+export const useInventory = (currentUserId?: string) => {
   const [parts, setParts] = useState<Part[]>([]);
-  const [logs, setLogs] = useState<ActivityLog[]>([]);
+  const [activityLogs, setActivityLogs] = useState<ActivityLog[]>([]);
   const [loading, setLoading] = useState(true);
 
-  // Load data from Supabase on mount
-  useEffect(() => {
-    loadParts();
-    loadLogs();
-  }, []);
-
-  const loadParts = async () => {
+  // Fetch parts from Supabase
+  const fetchParts = async () => {
     try {
       const { data, error } = await supabase
         .from('parts')
         .select('*')
         .order('created_at', { ascending: false });
 
-      if (error) {
-        console.error('Error loading parts:', error);
-        return;
-      }
+      if (error) throw error;
 
       const transformedParts: Part[] = data.map((part: any) => ({
-        id: String(part.id),
+        id: part.id,
         sku: part.sku,
         name: part.name,
         category: part.category,
         quantity: part.quantity,
+        unitCost: Number(part.unit_cost),
         location: part.location,
         supplier: part.supplier,
-        unitCost: Number(part.unit_cost),
         reorderThreshold: part.reorder_threshold,
         notes: part.notes || '',
         createdAt: new Date(part.created_at),
@@ -43,243 +35,176 @@ export function useInventory() {
 
       setParts(transformedParts);
     } catch (error) {
-      console.error('Error loading parts:', error);
-    } finally {
-      setLoading(false);
+      console.error('Error fetching parts:', error);
     }
   };
 
-  const loadLogs = async () => {
+  // Fetch activity logs from Supabase
+  const fetchActivityLogs = async () => {
     try {
       const { data, error } = await supabase
         .from('activity_logs')
-        .select('*')
+        .select('*, profiles:user_id(full_name)')
         .order('timestamp', { ascending: false })
-        .limit(100);
+        .limit(50);
 
-      if (error) {
-        console.error('Error loading logs:', error);
-        return;
-      }
+      if (error) throw error;
 
       const transformedLogs: ActivityLog[] = data.map((log: any) => ({
-        id: String(log.id),
+        id: log.id,
         timestamp: new Date(log.timestamp),
         action: log.action,
-        partId: String(log.part_id || ''),
+        partId: log.part_id,
         partName: log.part_name,
         details: log.details,
+        userName: log.profiles?.full_name || 'Utilisateur inconnu',
       }));
 
-      setLogs(transformedLogs);
+      setActivityLogs(transformedLogs);
     } catch (error) {
-      console.error('Error loading logs:', error);
+      console.error('Error fetching activity logs:', error);
     }
   };
 
-  const addLog = useCallback(async (action: ActivityLog['action'], partId: string, partName: string, details: string) => {
-    try {
-      const { data, error } = await supabase
-        .from('activity_logs')
-        .insert([
-          {
-            action,
-            part_id: partId,
-            part_name: partName,
-            details,
-          }
-        ])
-        .select()
-        .single();
+  // Log activity to Supabase
+  const logActivity = async (action: ActivityLog['action'], partId: string, partName: string, details: string) => {
+    const { error } = await supabase
+      .from('activity_logs')
+      .insert({
+        action,
+        part_id: partId,
+        part_name: partName,
+        details,
+        user_id: currentUserId,
+      });
 
-      if (error) {
-        console.error('Error adding log:', error);
-        return;
-      }
-
-      const newLog: ActivityLog = {
-        id: String(data.id),
-        timestamp: new Date(data.timestamp),
-        action: data.action,
-        partId: String(data.part_id || ''),
-        partName: data.part_name,
-        details: data.details,
-      };
-
-      setLogs(prev => [newLog, ...prev].slice(0, 100));
-    } catch (error) {
-      console.error('Error adding log:', error);
+    if (error) {
+      console.error('Error logging activity:', error);
+      return;
     }
-  }, []);
 
-  // Fonction utilitaire pour extraire la marque du SKU
-  const extractBrandFromSku = (sku: string): string => {
-    const skuParts = sku.split('-');
-    return skuParts.length >= 2 ? skuParts[1] : '';
+    // Refresh activity logs
+    await fetchActivityLogs();
   };
 
-  const createPart = useCallback(async (formData: PartFormData) => {
+  // Add a new part
+  const addPart = async (partData: PartFormData) => {
     try {
-      // Générer un SKU unique
-      const sku = generateUniqueSku(formData.category, formData.brand, parts);
+      const sku = generateUniqueSku(partData.category, partData.brand, parts);
       
-      const { data, error } = await supabase
+      const { data: newPart, error } = await supabase
         .from('parts')
-        .insert([
-          {
-            sku,
-            name: formData.name,
-            category: formData.category,
-            quantity: formData.quantity,
-            location: formData.location,
-            supplier: formData.supplier,
-            unit_cost: formData.unitCost,
-            reorder_threshold: formData.reorderThreshold,
-            notes: formData.notes,
-          }
-        ])
+        .insert({
+          name: partData.name,
+          sku: sku,
+          category: partData.category as any,
+          quantity: partData.quantity,
+          unit_cost: partData.unitCost,
+          location: partData.location,
+          supplier: partData.supplier || '',
+          reorder_threshold: partData.reorderThreshold,
+          notes: partData.notes || '',
+          created_by: currentUserId,
+          updated_by: currentUserId,
+        })
         .select()
         .single();
 
-      if (error) {
-        console.error('Error creating part:', error);
-        throw error;
-      }
+      if (error) throw error;
 
-      const newPart: Part = {
-        id: String(data.id),
-        sku: data.sku,
-        name: data.name,
-        category: data.category,
-        quantity: data.quantity,
-        location: data.location,
-        supplier: data.supplier,
-        unitCost: Number(data.unit_cost),
-        reorderThreshold: data.reorder_threshold,
-        notes: data.notes || '',
-        createdAt: new Date(data.created_at),
-        updatedAt: new Date(data.updated_at),
-      };
-
-      setParts(prev => [...prev, newPart]);
-      await addLog('CREATE', String(newPart.id), newPart.name, `Pièce créée avec SKU: ${sku}`);
-      return newPart;
+      await fetchParts();
+      await logActivity('CREATE', newPart.id, newPart.name, `Pièce créée avec SKU: ${sku}`);
     } catch (error) {
-      console.error('Error creating part:', error);
+      console.error('Error adding part:', error);
       throw error;
     }
-  }, [parts, addLog]);
+  };
 
-  const updatePart = useCallback(async (id: string, formData: PartFormData) => {
+  // Update an existing part
+  const updatePart = async (partId: string, partData: PartFormData) => {
     try {
-      // Régénérer le SKU si la catégorie ou la marque a changé
-      const currentPart = parts.find(p => p.id === id);
-      let sku = currentPart?.sku || '';
+      const currentPart = parts.find(p => p.id === partId);
+      const extractBrandFromSku = (sku: string) => sku.split('-')[1] || '';
       
+      let sku = currentPart?.sku || '';
       if (currentPart && (
-        formData.category !== currentPart.category || 
-        formData.brand !== extractBrandFromSku(currentPart.sku)
+        partData.category !== currentPart.category || 
+        partData.brand !== extractBrandFromSku(currentPart.sku)
       )) {
-        sku = generateUniqueSku(formData.category, formData.brand, parts.filter(p => p.id !== id));
+        sku = generateUniqueSku(partData.category, partData.brand, parts.filter(p => p.id !== partId));
       }
 
-      const { data, error } = await supabase
+      const { data: updatedPart, error } = await supabase
         .from('parts')
         .update({
-          sku,
-          name: formData.name,
-          category: formData.category,
-          quantity: formData.quantity,
-          location: formData.location,
-          supplier: formData.supplier,
-          unit_cost: formData.unitCost,
-          reorder_threshold: formData.reorderThreshold,
-          notes: formData.notes,
+          name: partData.name,
+          sku: sku,
+          category: partData.category as any,
+          quantity: partData.quantity,
+          unit_cost: partData.unitCost,
+          location: partData.location,
+          supplier: partData.supplier || '',
+          reorder_threshold: partData.reorderThreshold,
+          notes: partData.notes || '',
+          updated_by: currentUserId,
         })
-        .eq('id', id)
+        .eq('id', partId)
         .select()
         .single();
 
-      if (error) {
-        console.error('Error updating part:', error);
-        throw error;
-      }
+      if (error) throw error;
 
-      const updatedPart: Part = {
-        id: String(data.id),
-        sku: data.sku,
-        name: data.name,
-        category: data.category,
-        quantity: data.quantity,
-        location: data.location,
-        supplier: data.supplier,
-        unitCost: Number(data.unit_cost),
-        reorderThreshold: data.reorder_threshold,
-        notes: data.notes || '',
-        createdAt: new Date(data.created_at),
-        updatedAt: new Date(data.updated_at),
-      };
-
-      setParts(prev => prev.map(part => part.id === id ? updatedPart : part));
-      await addLog('UPDATE', String(id), updatedPart.name, `Pièce modifiée${sku !== currentPart?.sku ? ` - Nouveau SKU: ${sku}` : ''}`);
+      await fetchParts();
+      await logActivity('UPDATE', partId, updatedPart.name, `Pièce modifiée${sku !== currentPart?.sku ? ` - Nouveau SKU: ${sku}` : ''}`);
     } catch (error) {
       console.error('Error updating part:', error);
       throw error;
     }
-  }, [parts, addLog]);
+  };
 
-  const deletePart = useCallback(async (id: string) => {
+  // Delete a part
+  const deletePart = async (partId: string) => {
     try {
-      const part = parts.find(p => p.id === id);
-      if (!part) return;
+      const part = parts.find(p => p.id === partId);
+      if (!part) throw new Error('Part not found');
 
       const { error } = await supabase
         .from('parts')
         .delete()
-        .eq('id', id);
+        .eq('id', partId);
 
-      if (error) {
-        console.error('Error deleting part:', error);
-        throw error;
-      }
+      if (error) throw error;
 
-      setParts(prev => prev.filter(p => p.id !== id));
-      await addLog('DELETE', String(id), part.name, `Pièce supprimée`);
+      await fetchParts();
+      await logActivity('DELETE', partId, part.name, 'Pièce supprimée');
     } catch (error) {
       console.error('Error deleting part:', error);
       throw error;
     }
-  }, [parts, addLog]);
+  };
 
-  const adjustStock = useCallback(async (id: string, adjustment: number) => {
+  // Adjust stock quantity
+  const adjustStock = async (partId: string, adjustment: number) => {
     try {
-      const part = parts.find(p => p.id === id);
-      if (!part) return;
+      const part = parts.find(p => p.id === partId);
+      if (!part) throw new Error('Part not found');
 
       const newQuantity = Math.max(0, part.quantity + adjustment);
 
-      const { data, error } = await supabase
+      const { error } = await supabase
         .from('parts')
-        .update({ quantity: newQuantity })
-        .eq('id', id)
-        .select()
-        .single();
+        .update({ 
+          quantity: newQuantity,
+          updated_by: currentUserId,
+        })
+        .eq('id', partId);
 
-      if (error) {
-        console.error('Error adjusting stock:', error);
-        throw error;
-      }
+      if (error) throw error;
 
-      const updatedPart: Part = {
-        ...part,
-        quantity: data.quantity,
-        updatedAt: new Date(data.updated_at),
-      };
-
-      setParts(prev => prev.map(p => p.id === id ? updatedPart : p));
-      await addLog(
+      await fetchParts();
+      await logActivity(
         'STOCK_ADJUST',
-        String(id),
+        partId,
         part.name,
         `Stock ajusté: ${adjustment > 0 ? '+' : ''}${adjustment} (${part.quantity} → ${newQuantity})`
       );
@@ -287,56 +212,26 @@ export function useInventory() {
       console.error('Error adjusting stock:', error);
       throw error;
     }
-  }, [parts, addLog]);
+  };
 
-  const getStats = useCallback((): InventoryStats => {
-    const totalParts = parts.length;
-    const lowStockItems = parts.filter(part => part.quantity <= part.reorderThreshold).length;
-    const totalValue = parts.reduce((sum, part) => sum + (part.quantity * part.unitCost), 0);
-    
-    const categoryBreakdown = parts.reduce((acc, part) => {
-      acc[part.category] = (acc[part.category] || 0) + part.quantity;
-      return acc;
-    }, {} as Record<Category, number>);
-
-    return {
-      totalParts,
-      lowStockItems,
-      totalValue,
-      categoryBreakdown,
+  // Load data on component mount
+  useEffect(() => {
+    const loadData = async () => {
+      setLoading(true);
+      await Promise.all([fetchParts(), fetchActivityLogs()]);
+      setLoading(false);
     };
-  }, [parts]);
 
-  const searchParts = useCallback((query: string, categoryFilter?: Category, locationFilter?: string) => {
-    return parts.filter(part => {
-      const matchesQuery = !query || 
-        part.name.toLowerCase().includes(query.toLowerCase()) ||
-        part.sku.toLowerCase().includes(query.toLowerCase()) ||
-        part.supplier.toLowerCase().includes(query.toLowerCase()) ||
-        part.notes.toLowerCase().includes(query.toLowerCase()) ||
-        extractBrandFromSku(part.sku).toLowerCase().includes(query.toLowerCase());
-
-      const matchesCategory = !categoryFilter || part.category === categoryFilter;
-      const matchesLocation = !locationFilter || part.location.toLowerCase().includes(locationFilter.toLowerCase());
-
-      return matchesQuery && matchesCategory && matchesLocation;
-    });
-  }, [parts]);
-
-  const getLowStockParts = useCallback(() => {
-    return parts.filter(part => part.quantity <= part.reorderThreshold);
-  }, [parts]);
+    loadData();
+  }, []);
 
   return {
     parts,
-    logs,
+    activityLogs,
     loading,
-    createPart,
+    addPart,
     updatePart,
     deletePart,
     adjustStock,
-    getStats,
-    searchParts,
-    getLowStockParts,
   };
-}
+};

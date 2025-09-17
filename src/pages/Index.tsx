@@ -1,84 +1,109 @@
-import { useState } from "react";
-import { Plus, Smartphone } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { useInventory } from "@/hooks/useInventory";
-import { useToast } from "@/hooks/use-toast";
+import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
+import { PartsTable } from "@/components/inventory/PartsTable";
 import { InventoryStatsComponent } from "@/components/inventory/InventoryStats";
 import { SearchFilters } from "@/components/inventory/SearchFilters";
-import { PartsTable } from "@/components/inventory/PartsTable";
-import { PartForm } from "@/components/inventory/PartForm";
 import { ActivityLogs } from "@/components/inventory/ActivityLogs";
-import { Part, PartFormData, Category } from "@/types/inventory";
+import { PartForm } from "@/components/inventory/PartForm";
+import { useInventory } from "@/hooks/useInventory";
+import { useAuthContext } from "@/contexts/AuthContext";
+import type { Part, PartFormData, Category } from "@/types/inventory";
+import { Button } from "@/components/ui/button";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Plus, Settings, LogOut, Shield, User, Loader2 } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
 
 const Index = () => {
+  const { user, logout, isAuthenticated, loading, isAdmin } = useAuthContext();
+  const navigate = useNavigate();
+  const { toast } = useToast();
+  const [searchQuery, setSearchQuery] = useState("");
+  const [selectedCategory, setSelectedCategory] = useState<Category | undefined>();
+  const [locationFilter, setLocationFilter] = useState("");
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [editingPart, setEditingPart] = useState<Part | null>(null);
+
+  useEffect(() => {
+    if (!loading && !isAuthenticated) {
+      navigate('/login');
+    }
+  }, [isAuthenticated, loading, navigate]);
+
   const {
     parts,
-    logs,
-    loading,
-    createPart,
+    activityLogs,
+    loading: inventoryLoading,
+    addPart,
     updatePart,
     deletePart,
     adjustStock,
-    getStats,
-    searchParts,
-  } = useInventory();
-
-  const { toast } = useToast();
-  const [showForm, setShowForm] = useState(false);
-  const [editingPart, setEditingPart] = useState<Part | null>(null);
-  const [filteredParts, setFilteredParts] = useState<Part[]>([]);
-  const [searchActive, setSearchActive] = useState(false);
-
-  const stats = getStats();
+  } = useInventory(user?.id);
 
   const handleSearch = (query: string, category?: Category, location?: string) => {
-    const results = searchParts(query, category, location);
-    setFilteredParts(results);
-    setSearchActive(Boolean(query || category || location));
+    setSearchQuery(query);
+    setSelectedCategory(category);
+    setLocationFilter(location || "");
   };
 
-  const handleCreatePart = async (formData: PartFormData) => {
-    try {
-      await createPart(formData);
-      setShowForm(false);
-      toast({
-        title: "Pièce créée",
-        description: `${formData.name} a été ajoutée à l'inventaire.`,
-      });
-    } catch (error) {
-      toast({
-        title: "Erreur",
-        description: "Impossible de créer la pièce.",
-        variant: "destructive",
-      });
-    }
+  const filteredParts = parts.filter((part) => {
+    const matchesSearch = !searchQuery || 
+      part.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      part.sku.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      part.supplier.toLowerCase().includes(searchQuery.toLowerCase());
+    const matchesCategory = !selectedCategory || part.category === selectedCategory;
+    const matchesLocation = !locationFilter || part.location.toLowerCase().includes(locationFilter.toLowerCase());
+    return matchesSearch && matchesCategory && matchesLocation;
+  });
+
+  const stats = {
+    totalParts: parts.length,
+    lowStockItems: parts.filter(part => part.quantity <= part.reorderThreshold).length,
+    totalValue: parts.reduce((sum, part) => sum + (part.quantity * part.unitCost), 0),
+    categoryBreakdown: parts.reduce((acc, part) => {
+      acc[part.category] = (acc[part.category] || 0) + part.quantity;
+      return acc;
+    }, {} as Record<Category, number>),
   };
-  const handleUpdatePart = async (formData: PartFormData) => {
-    if (!editingPart) return;
-    
+
+  const handleFormSubmit = async (data: PartFormData) => {
     try {
-      await updatePart(editingPart.id, formData);
+      if (editingPart) {
+        await updatePart(editingPart.id, data);
+        toast({
+          title: "Pièce modifiée",
+          description: `${data.name} a été mise à jour avec succès.`,
+        });
+      } else {
+        await addPart(data);
+        toast({
+          title: "Pièce ajoutée",
+          description: `${data.name} a été ajoutée à l'inventaire.`,
+        });
+      }
+      setIsDialogOpen(false);
       setEditingPart(null);
-      setShowForm(false);
-      toast({
-        title: "Pièce modifiée",
-        description: `${formData.name} a été mise à jour.`,
-      });
     } catch (error) {
       toast({
         title: "Erreur",
-        description: "Impossible de modifier la pièce.",
+        description: "Une erreur s'est produite lors de la sauvegarde.",
         variant: "destructive",
       });
     }
   };
 
-  const handleDeletePart = async (id: string) => {
+  const handleEdit = (part: Part) => {
+    setEditingPart(part);
+    setIsDialogOpen(true);
+  };
+
+  const handleDelete = async (id: string) => {
     try {
       await deletePart(id);
       toast({
         title: "Pièce supprimée",
-        description: "La pièce a été supprimée de l'inventaire.",
+        description: "La pièce a été supprimée avec succès.",
       });
     } catch (error) {
       toast({
@@ -105,89 +130,111 @@ const Index = () => {
     }
   };
 
-  const handleEditPart = (part: Part) => {
-    setEditingPart(part);
-    setShowForm(true);
-  };
-
-  const handleCancelForm = () => {
-    setShowForm(false);
-    setEditingPart(null);
-  };
-
-  const displayedParts = searchActive ? filteredParts : parts;
-
-  if (loading) {
+  if (loading || inventoryLoading) {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-primary mx-auto mb-4"></div>
-          <p className="text-muted-foreground">Chargement de l'inventaire...</p>
-        </div>
+      <div className="min-h-screen flex items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin" />
       </div>
     );
   }
 
-  if (showForm) {
-    return (
-      <div className="min-h-screen bg-background p-4">
-        <div className="max-w-6xl mx-auto">
-          <PartForm
-            part={editingPart || undefined}
-            onSubmit={editingPart ? handleUpdatePart : handleCreatePart}
-            onCancel={handleCancelForm}
-          />
-        </div>
-      </div>
-    );
+  if (!isAuthenticated) {
+    return null;
   }
 
   return (
-    <div className="min-h-screen bg-background">
-      <div className="max-w-7xl mx-auto p-4 space-y-8">
-        {/* Header */}
-        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 py-6">
-          <div>
-            <div className="flex items-center gap-3 mb-2">
-              <div className="p-2 bg-gradient-primary rounded-xl text-primary-foreground">
-                <Smartphone className="h-6 w-6" />
-              </div>
-              <h1 className="text-3xl font-bold tracking-tight">
-                Inventaire Pièces Mobile
-              </h1>
+    <div className="min-h-screen bg-gradient-to-br from-background to-secondary/20 p-4">
+      <div className="max-w-7xl mx-auto">
+        <div className="mb-8">
+          <div className="flex justify-between items-center mb-6">
+            <div>
+              <h1 className="text-3xl font-bold text-foreground">Gestion d'Inventaire</h1>
+              <p className="text-muted-foreground">Gérez vos pièces et composants efficacement</p>
             </div>
-            <p className="text-muted-foreground">
-              Gestion des pièces détachées de téléphones portables
-            </p>
+            
+            <div className="flex items-center gap-4">
+              <Card className="p-3">
+                <div className="flex items-center gap-2">
+                  <Badge variant={user?.role === 'admin' ? 'default' : 'secondary'}>
+                    {user?.role === 'admin' ? (
+                      <>
+                        <Shield className="mr-1 h-3 w-3" />
+                        Admin
+                      </>
+                    ) : (
+                      <>
+                        <User className="mr-1 h-3 w-3" />
+                        Opérateur
+                      </>
+                    )}
+                  </Badge>
+                  <span className="text-sm font-medium">{user?.full_name}</span>
+                </div>
+              </Card>
+              
+              <div className="flex items-center gap-2">
+                {isAdmin && (
+                  <Button
+                    variant="outline"
+                    onClick={() => navigate('/admin')}
+                  >
+                    <Settings className="mr-2 h-4 w-4" />
+                    Administration
+                  </Button>
+                )}
+                
+                <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+                  <DialogTrigger asChild>
+                    <Button size="lg" className="gap-2">
+                      <Plus className="h-4 w-4" />
+                      Nouvelle Pièce
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent className="sm:max-w-[600px]">
+                    <DialogHeader>
+                      <DialogTitle>
+                        {editingPart ? "Modifier la pièce" : "Nouvelle pièce"}
+                      </DialogTitle>
+                    </DialogHeader>
+                    <PartForm
+                      part={editingPart}
+                      onSubmit={handleFormSubmit}
+                      onCancel={() => {
+                        setIsDialogOpen(false);
+                        setEditingPart(null);
+                      }}
+                    />
+                  </DialogContent>
+                </Dialog>
+                
+                <Button
+                  variant="outline"
+                  onClick={logout}
+                >
+                  <LogOut className="mr-2 h-4 w-4" />
+                  Déconnexion
+                </Button>
+              </div>
+            </div>
           </div>
+
+          <InventoryStatsComponent stats={stats} />
           
-          <Button onClick={() => setShowForm(true)} size="lg" className="gap-2">
-            <Plus className="h-5 w-5" />
-            Nouvelle pièce
-          </Button>
+          <SearchFilters onSearch={handleSearch} />
         </div>
 
-        {/* Stats */}
-        <InventoryStatsComponent stats={stats} />
-
-        {/* Search & Filters */}
-        <SearchFilters onSearch={handleSearch} />
-
-        {/* Main Content Grid */}
-        <div className="grid grid-cols-1 xl:grid-cols-4 gap-8">
-          {/* Parts Table */}
-          <div className="xl:col-span-3">
-            <PartsTable
-              parts={displayedParts}
-              onEdit={handleEditPart}
-              onDelete={handleDeletePart}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+          <div className="lg:col-span-2">
+            <PartsTable 
+              parts={filteredParts}
+              onEdit={handleEdit}
+              onDelete={handleDelete}
               onStockAdjust={handleStockAdjust}
             />
           </div>
-
-          {/* Activity Logs */}
-          <div className="xl:col-span-1">
-            <ActivityLogs logs={logs} />
+          
+          <div>
+            <ActivityLogs logs={activityLogs} />
           </div>
         </div>
       </div>
