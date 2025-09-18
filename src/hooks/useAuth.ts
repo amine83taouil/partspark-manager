@@ -28,7 +28,10 @@ export const useAuth = () => {
         throw new Error('Nom d\'utilisateur ou mot de passe incorrect');
       }
 
-      // Get user details first
+      // Set the current user ID in the database session for RLS policies
+      await supabase.rpc('set_current_user_id', { user_id_param: data });
+
+      // Get user details
       const { data: userData, error: userError } = await supabase
         .from('profiles')
         .select('*')
@@ -36,30 +39,6 @@ export const useAuth = () => {
         .single();
 
       if (userError) throw userError;
-
-      // Sign in with Supabase auth using the user's ID as a dummy email
-      // This allows RLS policies to work with auth.uid()
-      const dummyEmail = `${userData.username}@internal.local`;
-      const { error: signInError } = await supabase.auth.signInWithPassword({
-        email: dummyEmail,
-        password: 'dummy-password'
-      });
-
-      // If the dummy user doesn't exist, create it
-      if (signInError) {
-        const { error: signUpError } = await supabase.auth.signUp({
-          email: dummyEmail,
-          password: 'dummy-password'
-        });
-        
-        if (!signUpError) {
-          // Try signing in again after signup
-          await supabase.auth.signInWithPassword({
-            email: dummyEmail,
-            password: 'dummy-password'
-          });
-        }
-      }
       
       setUser(userData);
       localStorage.setItem('currentUserId', data);
@@ -83,6 +62,9 @@ export const useAuth = () => {
         setLoading(false);
         return;
       }
+
+      // Set the current user ID in the database session for RLS policies
+      await supabase.rpc('set_current_user_id', { user_id_param: userId });
 
       const { data, error } = await supabase
         .from('profiles')
