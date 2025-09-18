@@ -175,6 +175,14 @@ export type Database = {
         Args: { password: string }
         Returns: string
       }
+      is_active_user: {
+        Args: Record<PropertyKey, never>
+        Returns: boolean
+      }
+      is_admin: {
+        Args: Record<PropertyKey, never>
+        Returns: boolean
+      }
     }
     Enums: {
       activity_action: "CREATE" | "UPDATE" | "DELETE" | "STOCK_ADJUST"
