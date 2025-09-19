@@ -79,8 +79,8 @@ export default function AdminPanel() {
     }
 
     try {
-      const { data: hashedPassword, error: hashError } = await supabase.rpc('hash_password', {
-        password: formData.password
+      const { data: hashedPassword, error: hashError } = await supabase.rpc('simple_hash', {
+        input_text: formData.password
       });
 
       if (hashError) throw hashError;
@@ -127,8 +127,8 @@ export default function AdminPanel() {
     }
 
     try {
-      const { data: hashedPassword, error: hashError } = await supabase.rpc('hash_password', {
-        password: newPassword
+      const { data: hashedPassword, error: hashError } = await supabase.rpc('simple_hash', {
+        input_text: newPassword
       });
 
       if (hashError) throw hashError;
