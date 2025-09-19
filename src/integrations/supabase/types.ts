@@ -175,13 +175,13 @@ export type Database = {
         Args: Record<PropertyKey, never>
         Returns: string
       }
-      hash_password: {
-        Args: { password: string }
-        Returns: string
-      }
       set_current_user_id: {
         Args: { user_id_param: string }
         Returns: undefined
+      }
+      simple_hash: {
+        Args: { input_text: string }
+        Returns: string
       }
     }
     Enums: {
