@@ -28,22 +28,24 @@ export const useAuth = () => {
         throw new Error('Nom d\'utilisateur ou mot de passe incorrect');
       }
 
-      // Set the current user ID in the database session for RLS policies
-      await supabase.rpc('set_current_user_id', { user_id_param: data });
-
-      // Get user details
+      // Get user details using maybeSingle to avoid errors
       const { data: userData, error: userError } = await supabase
         .from('profiles')
         .select('*')
         .eq('id', data)
-        .single();
+        .maybeSingle();
 
       if (userError) throw userError;
+      
+      if (!userData) {
+        throw new Error('Utilisateur non trouvé');
+      }
       
       setUser(userData);
       localStorage.setItem('currentUserId', data);
       return { success: true };
     } catch (error: any) {
+      console.error('Login error:', error);
       return { success: false, error: error.message };
     }
   };
@@ -63,17 +65,14 @@ export const useAuth = () => {
         return;
       }
 
-      // Set the current user ID in the database session for RLS policies
-      await supabase.rpc('set_current_user_id', { user_id_param: userId });
-
       const { data, error } = await supabase
         .from('profiles')
         .select('*')
         .eq('id', userId)
         .eq('is_active', true)
-        .single();
+        .maybeSingle();
 
-      if (error) {
+      if (error || !data) {
         localStorage.removeItem('currentUserId');
         setUser(null);
       } else {

@@ -179,14 +179,6 @@ export type Database = {
         Args: { password: string }
         Returns: string
       }
-      is_active_user: {
-        Args: Record<PropertyKey, never>
-        Returns: boolean
-      }
-      is_admin: {
-        Args: Record<PropertyKey, never>
-        Returns: boolean
-      }
       set_current_user_id: {
         Args: { user_id_param: string }
         Returns: undefined
