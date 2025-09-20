@@ -5,6 +5,7 @@ export interface Part {
   category: Category;
   quantity: number;
   location: string;
+  locationId?: string;
   supplier: string;
   unitCost: number;
   reorderThreshold: number;

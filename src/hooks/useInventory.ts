@@ -13,7 +13,10 @@ export const useInventory = (currentUserId?: string) => {
     try {
       const { data, error } = await supabase
         .from('parts')
-        .select('*')
+        .select(`
+          *,
+          locations(name)
+        `)
         .order('created_at', { ascending: false });
 
       if (error) throw error;
@@ -25,12 +28,13 @@ export const useInventory = (currentUserId?: string) => {
         category: part.category,
         quantity: part.quantity,
         unitCost: Number(part.unit_cost),
-        location: part.location,
+        location: part.locations?.name || part.location || '',
         supplier: part.supplier,
         reorderThreshold: part.reorder_threshold,
         notes: part.notes || '',
         createdAt: new Date(part.created_at),
         updatedAt: new Date(part.updated_at),
+        locationId: part.location_id,
       }));
 
       setParts(transformedParts);
@@ -68,6 +72,13 @@ export const useInventory = (currentUserId?: string) => {
 
   // Log activity to Supabase
   const logActivity = async (action: ActivityLog['action'], partId: string, partName: string, details: string) => {
+    // Get company_id from user profile
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('company_id')
+      .eq('id', currentUserId)
+      .single();
+
     const { error } = await supabase
       .from('activity_logs')
       .insert({
@@ -76,6 +87,7 @@ export const useInventory = (currentUserId?: string) => {
         part_name: partName,
         details,
         user_id: currentUserId,
+        company_id: profile?.company_id,
       });
 
     if (error) {
@@ -88,8 +100,19 @@ export const useInventory = (currentUserId?: string) => {
   };
 
   // Add a new part
-  const addPart = async (partData: PartFormData) => {
+  const addPart = async (partData: PartFormData, locationId?: string) => {
     try {
+      // Get company_id from user profile
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('company_id')
+        .eq('id', currentUserId)
+        .single();
+
+      if (!profile?.company_id) {
+        throw new Error('Company not found');
+      }
+
       const sku = generateUniqueSku(partData.category, partData.brand, parts);
       
       const { data: newPart, error } = await supabase
@@ -101,9 +124,11 @@ export const useInventory = (currentUserId?: string) => {
           quantity: partData.quantity,
           unit_cost: partData.unitCost,
           location: partData.location,
+          location_id: locationId,
           supplier: partData.supplier || '',
           reorder_threshold: partData.reorderThreshold,
           notes: partData.notes || '',
+          company_id: profile.company_id,
           created_by: currentUserId,
           updated_by: currentUserId,
         })
@@ -111,6 +136,20 @@ export const useInventory = (currentUserId?: string) => {
         .single();
 
       if (error) throw error;
+
+      // Log stock movement
+      if (locationId && partData.quantity > 0) {
+        await supabase.rpc('log_stock_movement', {
+          part_id_param: newPart.id,
+          location_id_param: locationId,
+          movement_type_param: 'IN',
+          quantity_param: partData.quantity,
+          previous_quantity_param: 0,
+          new_quantity_param: partData.quantity,
+          unit_cost_param: partData.unitCost,
+          notes_param: `Stock initial lors de la création de la pièce`,
+        });
+      }
 
       await fetchParts();
       await logActivity('CREATE', newPart.id, newPart.name, `Pièce créée avec SKU: ${sku}`);

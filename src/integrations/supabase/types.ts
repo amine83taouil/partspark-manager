@@ -17,6 +17,7 @@ export type Database = {
       activity_logs: {
         Row: {
           action: Database["public"]["Enums"]["activity_action"]
+          company_id: string | null
           details: string
           id: string
           part_id: string | null
@@ -26,6 +27,7 @@ export type Database = {
         }
         Insert: {
           action: Database["public"]["Enums"]["activity_action"]
+          company_id?: string | null
           details?: string
           id?: string
           part_id?: string | null
@@ -35,6 +37,7 @@ export type Database = {
         }
         Update: {
           action?: Database["public"]["Enums"]["activity_action"]
+          company_id?: string | null
           details?: string
           id?: string
           part_id?: string | null
@@ -44,6 +47,13 @@ export type Database = {
         }
         Relationships: [
           {
+            foreignKeyName: "activity_logs_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "activity_logs_user_id_fkey"
             columns: ["user_id"]
             isOneToOne: false
@@ -52,13 +62,92 @@ export type Database = {
           },
         ]
       }
+      companies: {
+        Row: {
+          created_at: string
+          id: string
+          is_active: boolean
+          max_locations: number
+          max_users: number
+          name: string
+          slug: string
+          subscription_plan: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          max_locations?: number
+          max_users?: number
+          name: string
+          slug: string
+          subscription_plan?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          max_locations?: number
+          max_users?: number
+          name?: string
+          slug?: string
+          subscription_plan?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      locations: {
+        Row: {
+          address: string | null
+          company_id: string
+          created_at: string
+          description: string | null
+          id: string
+          is_active: boolean
+          name: string
+          updated_at: string
+        }
+        Insert: {
+          address?: string | null
+          company_id: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          name: string
+          updated_at?: string
+        }
+        Update: {
+          address?: string | null
+          company_id?: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          name?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "locations_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       parts: {
         Row: {
           category: Database["public"]["Enums"]["part_category"]
+          company_id: string | null
           created_at: string
           created_by: string | null
           id: string
           location: string
+          location_id: string | null
           name: string
           notes: string | null
           quantity: number
@@ -71,10 +160,12 @@ export type Database = {
         }
         Insert: {
           category: Database["public"]["Enums"]["part_category"]
+          company_id?: string | null
           created_at?: string
           created_by?: string | null
           id?: string
           location?: string
+          location_id?: string | null
           name: string
           notes?: string | null
           quantity?: number
@@ -87,10 +178,12 @@ export type Database = {
         }
         Update: {
           category?: Database["public"]["Enums"]["part_category"]
+          company_id?: string | null
           created_at?: string
           created_by?: string | null
           id?: string
           location?: string
+          location_id?: string | null
           name?: string
           notes?: string | null
           quantity?: number
@@ -103,10 +196,24 @@ export type Database = {
         }
         Relationships: [
           {
+            foreignKeyName: "parts_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "parts_created_by_fkey"
             columns: ["created_by"]
             isOneToOne: false
             referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "parts_location_id_fkey"
+            columns: ["location_id"]
+            isOneToOne: false
+            referencedRelation: "locations"
             referencedColumns: ["id"]
           },
           {
@@ -120,6 +227,7 @@ export type Database = {
       }
       profiles: {
         Row: {
+          company_id: string | null
           created_at: string
           created_by: string | null
           full_name: string
@@ -131,6 +239,7 @@ export type Database = {
           username: string
         }
         Insert: {
+          company_id?: string | null
           created_at?: string
           created_by?: string | null
           full_name: string
@@ -142,6 +251,7 @@ export type Database = {
           username: string
         }
         Update: {
+          company_id?: string | null
           created_at?: string
           created_by?: string | null
           full_name?: string
@@ -154,8 +264,156 @@ export type Database = {
         }
         Relationships: [
           {
+            foreignKeyName: "profiles_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "profiles_created_by_fkey"
             columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      stock_alerts: {
+        Row: {
+          acknowledged_at: string | null
+          acknowledged_by: string | null
+          alert_type: string
+          company_id: string
+          created_at: string
+          current_value: number
+          id: string
+          is_acknowledged: boolean
+          part_id: string
+          resolved_at: string | null
+          threshold_value: number
+        }
+        Insert: {
+          acknowledged_at?: string | null
+          acknowledged_by?: string | null
+          alert_type?: string
+          company_id: string
+          created_at?: string
+          current_value: number
+          id?: string
+          is_acknowledged?: boolean
+          part_id: string
+          resolved_at?: string | null
+          threshold_value: number
+        }
+        Update: {
+          acknowledged_at?: string | null
+          acknowledged_by?: string | null
+          alert_type?: string
+          company_id?: string
+          created_at?: string
+          current_value?: number
+          id?: string
+          is_acknowledged?: boolean
+          part_id?: string
+          resolved_at?: string | null
+          threshold_value?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "stock_alerts_acknowledged_by_fkey"
+            columns: ["acknowledged_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "stock_alerts_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "stock_alerts_part_id_fkey"
+            columns: ["part_id"]
+            isOneToOne: false
+            referencedRelation: "parts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      stock_movements: {
+        Row: {
+          company_id: string
+          created_at: string
+          id: string
+          location_id: string
+          movement_type: string
+          new_quantity: number
+          notes: string | null
+          part_id: string
+          previous_quantity: number
+          quantity: number
+          reference_number: string | null
+          unit_cost: number | null
+          user_id: string | null
+        }
+        Insert: {
+          company_id: string
+          created_at?: string
+          id?: string
+          location_id: string
+          movement_type: string
+          new_quantity: number
+          notes?: string | null
+          part_id: string
+          previous_quantity: number
+          quantity: number
+          reference_number?: string | null
+          unit_cost?: number | null
+          user_id?: string | null
+        }
+        Update: {
+          company_id?: string
+          created_at?: string
+          id?: string
+          location_id?: string
+          movement_type?: string
+          new_quantity?: number
+          notes?: string | null
+          part_id?: string
+          previous_quantity?: number
+          quantity?: number
+          reference_number?: string | null
+          unit_cost?: number | null
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "stock_movements_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "stock_movements_location_id_fkey"
+            columns: ["location_id"]
+            isOneToOne: false
+            referencedRelation: "locations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "stock_movements_part_id_fkey"
+            columns: ["part_id"]
+            isOneToOne: false
+            referencedRelation: "parts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "stock_movements_user_id_fkey"
+            columns: ["user_id"]
             isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
@@ -171,8 +429,26 @@ export type Database = {
         Args: { password_input: string; username_input: string }
         Returns: string
       }
+      check_low_stock: {
+        Args: Record<PropertyKey, never>
+        Returns: undefined
+      }
       get_current_user_id: {
         Args: Record<PropertyKey, never>
+        Returns: string
+      }
+      log_stock_movement: {
+        Args: {
+          location_id_param: string
+          movement_type_param: string
+          new_quantity_param: number
+          notes_param?: string
+          part_id_param: string
+          previous_quantity_param: number
+          quantity_param: number
+          reference_number_param?: string
+          unit_cost_param?: number
+        }
         Returns: string
       }
       set_current_user_id: {
