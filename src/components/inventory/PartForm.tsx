@@ -5,15 +5,18 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Combobox } from "@/components/ui/combobox";
 import { CATEGORIES, Part, PartFormData } from "@/types/inventory";
+import { useAutoCompleteData } from "@/hooks/useAutoCompleteData";
 
 interface PartFormProps {
   part?: Part;
   onSubmit: (data: PartFormData) => void;
   onCancel: () => void;
+  existingParts?: Part[];
 }
 
-export function PartForm({ part, onSubmit, onCancel }: PartFormProps) {
+export function PartForm({ part, onSubmit, onCancel, existingParts = [] }: PartFormProps) {
   const [formData, setFormData] = useState<PartFormData>({
     name: "",
     category: "Batterie",
@@ -27,6 +30,7 @@ export function PartForm({ part, onSubmit, onCancel }: PartFormProps) {
   });
 
   const [errors, setErrors] = useState<Partial<PartFormData>>({});
+  const { brands, locations, suppliers, names } = useAutoCompleteData(existingParts);
 
   useEffect(() => {
     if (part) {
@@ -89,24 +93,26 @@ export function PartForm({ part, onSubmit, onCancel }: PartFormProps) {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <Label htmlFor="name">Nom de la pièce *</Label>
-              <Input
-                id="name"
+              <Combobox
+                options={names}
                 value={formData.name}
-                onChange={(e) => updateField("name", e.target.value)}
-                className={errors.name ? "border-destructive" : ""}
+                onChange={(value) => updateField("name", value)}
                 placeholder="ex: Écran LCD iPhone 13"
+                searchPlaceholder="Rechercher une pièce..."
+                className={errors.name ? "border-destructive" : ""}
               />
               {errors.name && <p className="text-sm text-destructive mt-1">{errors.name}</p>}
             </div>
 
             <div>
               <Label htmlFor="brand">Marque / Modèle *</Label>
-              <Input
-                id="brand"
+              <Combobox
+                options={brands}
                 value={formData.brand}
-                onChange={(e) => updateField("brand", e.target.value)}
-                className={errors.brand ? "border-destructive" : ""}
+                onChange={(value) => updateField("brand", value)}
                 placeholder="ex: iPhone, Samsung, Huawei"
+                searchPlaceholder="Rechercher une marque..."
+                className={errors.brand ? "border-destructive" : ""}
               />
               {errors.brand && <p className="text-sm text-destructive mt-1">{errors.brand}</p>}
               <p className="text-xs text-muted-foreground mt-1">
@@ -152,11 +158,12 @@ export function PartForm({ part, onSubmit, onCancel }: PartFormProps) {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <Label htmlFor="location">Localisation *</Label>
-              <Input
-                id="location"
+              <Combobox
+                options={locations}
                 value={formData.location}
-                onChange={(e) => updateField("location", e.target.value)}
+                onChange={(value) => updateField("location", value)}
                 placeholder="ex: A1-B3, Étagère 2"
+                searchPlaceholder="Rechercher une localisation..."
                 className={errors.location ? "border-destructive" : ""}
               />
               {errors.location && <p className="text-sm text-destructive mt-1">{errors.location}</p>}
@@ -164,10 +171,12 @@ export function PartForm({ part, onSubmit, onCancel }: PartFormProps) {
 
             <div>
               <Label htmlFor="supplier">Fournisseur *</Label>
-              <Input
-                id="supplier"
+              <Combobox
+                options={suppliers}
                 value={formData.supplier}
-                onChange={(e) => updateField("supplier", e.target.value)}
+                onChange={(value) => updateField("supplier", value)}
+                placeholder="ex: Fournisseur XYZ"
+                searchPlaceholder="Rechercher un fournisseur..."
                 className={errors.supplier ? "border-destructive" : ""}
               />
               {errors.supplier && <p className="text-sm text-destructive mt-1">{errors.supplier}</p>}

@@ -203,6 +203,7 @@ const Index = () => {
                         setIsDialogOpen(false);
                         setEditingPart(null);
                       }}
+                      existingParts={parts}
                     />
                   </DialogContent>
                 </Dialog>
